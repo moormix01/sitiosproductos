@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Admin - JACK STREAMING</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo"><span>▶</span> JACK STREAMING</div>
+    <h2>Panel Administrador</h2>
+    <p class="login-sub">Acceso exclusivo para administrador</p>
+    <form id="login-form">
+      <div class="field"><label>Usuario</label><input type="text" id="username" placeholder="Usuario" autocomplete="username"></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="password" placeholder="Contraseña" autocomplete="current-password"></div>
+      <div id="login-error" class="error-msg" style="display:none">Usuario o contraseña incorrectos</div>
+      <button type="submit" class="btn-primary" id="login-btn">Ingresar</button>
+    </form>
+  </div>
+</div>
+
+<div id="admin-screen" class="admin-screen" style="display:none">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><span>▶</span> JACK STREAMING</div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-tab="products">📦 Productos</a>
+      <a href="#" class="nav-item" data-tab="add-product">➕ Agregar Producto</a>
+      <a href="#" class="nav-item" data-tab="settings">⚙️ Configuración</a>
+      <a href="#" class="nav-item" data-tab="backup">💾 Backup</a>
+    </nav>
+    <button class="logout-btn" id="logout-btn">🚪 Cerrar sesión</button>
+  </aside>
+
+  <main class="admin-main">
+    <!-- PRODUCTS TAB -->
+    <div class="tab-content active" id="tab-products">
+      <div class="tab-header">
+        <h1>Mis Productos</h1>
+        <button class="btn-primary" onclick="showTab('add-product')">+ Agregar</button>
+      </div>
+      <div id="products-list" class="products-list"><div class="loading">Cargando...</div></div>
+    </div>
+
+    <!-- ADD/EDIT PRODUCT TAB -->
+    <div class="tab-content" id="tab-add-product">
+      <div class="tab-header">
+        <h1 id="form-title">Agregar Producto</h1>
+      </div>
+      <form id="product-form" class="product-form" enctype="multipart/form-data">
+        <input type="hidden" id="edit-id">
+        <div class="form-grid">
+          <div class="field">
+            <label>Nombre del producto *</label>
+            <input type="text" id="p-name" placeholder="ej: Netflix Premium 4K" required>
+          </div>
+          <div class="field">
+            <label>Servicio</label>
+            <input type="text" id="p-service" placeholder="ej: Netflix, Disney+, HBO">
+          </div>
+          <div class="field">
+            <label>Tipo de cuenta</label>
+            <select id="p-account-type">
+              <option value="cuenta">Cuenta Completa</option>
+              <option value="perfil">Perfil</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Precio (USD) *</label>
+            <input type="number" id="p-price" placeholder="ej: 9.99" step="0.01" min="0" required>
+          </div>
+          <div class="field">
+            <label>Días de garantía</label>
+            <input type="number" id="p-days" placeholder="30" value="30" min="1">
+          </div>
+          <div class="field full">
+            <label>Lo que incluye (una por línea)</label>
+            <textarea id="p-features" rows="4" placeholder="4K Ultra HD&#10;4 pantallas simultáneas&#10;Descarga offline"></textarea>
+          </div>
+          <div class="field full">
+            <label>🟢 Mensaje de WhatsApp *</label>
+            <div class="field-hint">
+              <strong>⚠️ Importante:</strong> Escribe SOLO el texto del mensaje. NO pongas el número de teléfono aquí.<br>
+              El número lo configuras en <em>Configuración → Número WhatsApp</em>.<br>
+              <strong>Ejemplo:</strong> <em>Hola Jack, vengo de tu sitio web, me interesa comprar Netflix Premium 4K</em>
+            </div>
+            <textarea id="p-whatsapp" rows="3" placeholder="Hola Jack, vengo de tu sitio web, me interesa comprar Netflix Premium 4K" required></textarea>
+          </div>
+          <div class="field full">
+            <label>Imagen del producto</label>
+            <input type="file" id="p-image" accept="image/*">
+            <div id="image-preview-wrap" style="display:none; margin-top:8px">
+              <img id="image-preview" style="max-width:200px; border-radius:8px;">
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="save-btn">Guardar Producto</button>
+          <button type="button" class="btn-ghost" onclick="cancelEdit()">Cancelar</button>
+        </div>
+        <div id="form-msg" class="form-msg" style="display:none"></div>
+      </form>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div class="tab-content" id="tab-settings">
+      <div class="tab-header"><h1>Configuración</h1></div>
+      <form id="settings-form" class="product-form" enctype="multipart/form-data">
+        <div class="form-grid">
+          <div class="field full">
+            <label>Nombre del sitio</label>
+            <input type="text" id="s-title" placeholder="JACK STREAMING">
+          </div>
+          <div class="field full">
+            <label>Número de WhatsApp</label>
+            <div class="field-hint">
+              <strong>⚠️ Formato correcto:</strong> Código de país + número, SIN espacios ni símbolos.<br>
+              <strong>Ejemplo México:</strong> <code>5214444289648</code> &nbsp;|&nbsp; <strong>Venezuela:</strong> <code>584141234567</code><br>
+              NO pongas: +52, (444), guiones, ni espacios.
+            </div>
+            <input type="text" id="s-whatsapp" placeholder="ej: 5214444289648">
+          </div>
+          <div class="field full">
+            <label>Banner principal</label>
+            <p style="font-size:13px;color:#94a3b8;margin-bottom:8px">Sube la imagen que aparecerá de banner en tu sitio. Recomendado: 1200×400px</p>
+            <input type="file" id="s-banner" accept="image/*">
+            <div id="banner-preview-wrap" style="display:none; margin-top:8px">
+              <img id="banner-preview" style="max-width:100%;max-height:200px;border-radius:8px;">
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Guardar Configuración</button>
+        <div id="settings-msg" class="form-msg" style="display:none"></div>
+      </form>
+    </div>
+
+    <!-- BACKUP TAB -->
+    <div class="tab-content" id="tab-backup">
+      <div class="tab-header"><h1>Backup de Datos</h1></div>
+      <div class="backup-info">
+        <div class="info-card">
+          <h3>💾 Exportar datos</h3>
+          <p>Descarga un archivo con todos tus productos y configuración. Úsalo para restaurar en caso de pérdida de datos.</p>
+          <button class="btn-primary" onclick="exportBackup()">Descargar Backup</button>
+        </div>
+        <div class="info-card">
+          <h3>📂 Restaurar datos</h3>
+          <p>Sube un archivo de backup para restaurar tus productos y configuración.</p>
+          <input type="file" id="restore-file" accept=".json" style="margin-bottom:12px">
+          <button class="btn-secondary" onclick="importBackup()">Restaurar Backup</button>
+          <div id="restore-msg" class="form-msg" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="modal" class="modal" style="display:none">
+  <div class="modal-box">
+    <h3 id="modal-title">¿Estás seguro?</h3>
+    <p id="modal-msg"></p>
+    <div class="modal-actions">
+      <button class="btn-danger" id="modal-confirm">Confirmar</button>
+      <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/admin.js"></script>
+</body>
+</html>
