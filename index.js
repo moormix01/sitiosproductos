@@ -209,4 +209,10 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Jack Streaming server running on port ${PORT}`);
+  const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+  setInterval(() => {
+    fetch(`${keepAliveUrl}/api/settings/public`)
+      .then(() => console.log('Keep-alive ping OK'))
+      .catch(() => {});
+  }, 14 * 60 * 1000);
 });
