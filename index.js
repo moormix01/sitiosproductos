@@ -18,12 +18,8 @@ function createPool() {
     console.error('[DB] ERROR: DATABASE_URL is not set');
     return null;
   }
-  let url = dbUrl;
-  if (!url.includes('sslmode')) {
-    url += (url.includes('?') ? '&' : '?') + 'sslmode=require';
-  }
   const p = new Pool({
-    connectionString: url,
+    connectionString: dbUrl,
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 15000,
     idleTimeoutMillis: 30000,
