@@ -1,3 +1,6 @@
+// Force IPv4 so Render can reach Supabase
+require('dns').setDefaultResultOrder('ipv4first');
+
 const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
