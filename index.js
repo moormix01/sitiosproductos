@@ -2,7 +2,6 @@ const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
 const path = require('path');
-const dns = require('dns').promises;
 const { Pool } = require('pg');
 
 const app = express();
@@ -12,46 +11,26 @@ let pool = null;
 let dbReady = false;
 let dbError = null;
 
-// Resolve Supabase hostname to IPv4 — Render free tier blocks IPv6 outbound
-async function resolveToIPv4(url) {
-  const m = url.match(/postgresql:\/\/([^@]+)@([^:/]+)(:\d+)?(\/.*)?/);
-  if (!m) return url;
-  const userpass = m[1];
-  const hostname = m[2];
-  const portStr = m[3] || ':5432';
-  const dbpath = m[4] || '/postgres';
-  try {
-    const addrs = await dns.resolve4(hostname);
-    if (addrs && addrs.length > 0) {
-      console.log('[DB] Resolved', hostname, '->', addrs[0]);
-      return 'postgresql://' + userpass + '@' + addrs[0] + portStr + dbpath;
-    }
-  } catch (e) {
-    console.error('[DB] DNS resolve4 failed:', e.message);
-  }
-  return url;
-}
-
-async function initPool() {
+function createPool() {
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
     dbError = 'DATABASE_URL is not set';
     console.error('[DB] ERROR: DATABASE_URL is not set');
-    return;
+    return null;
   }
-  console.log('[DB] Resolving Supabase hostname to IPv4...');
-  let url = await resolveToIPv4(dbUrl);
+  let url = dbUrl;
   if (!url.includes('sslmode')) {
     url += (url.includes('?') ? '&' : '?') + 'sslmode=require';
   }
-  pool = new Pool({
+  const p = new Pool({
     connectionString: url,
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 15000,
     idleTimeoutMillis: 30000,
     max: 5
   });
-  pool.on('error', (err) => console.error('[DB] Pool error:', err.message));
+  p.on('error', (err) => console.error('[DB] Pool error:', err.message));
+  return p;
 }
 
 async function initDB() {
@@ -135,7 +114,6 @@ function requireAuth(req, res, next) {
   res.status(401).json({ error: 'No autorizado' });
 }
 
-// Debug endpoint
 app.get('/api/db-status', (req, res) => {
   res.json({ dbReady, dbError, env: !!process.env.DATABASE_URL });
 });
@@ -150,14 +128,14 @@ app.get('/api/products', dbCheck, async (req, res) => {
       features: p.features, days_guaranteed: p.days_guaranteed,
       whatsapp_message: p.whatsapp_message, image: p.image
     })));
-  } catch (err) { console.error('GET /api/products:', err.message); res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err.message); res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/settings/public', dbCheck, async (req, res) => {
   try {
     const s = await getSettings();
     res.json({ banner_image: s.banner_image, site_title: s.site_title, whatsapp_number: s.whatsapp_number });
-  } catch (err) { console.error('GET /api/settings/public:', err.message); res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err.message); res.status(500).json({ error: err.message }); }
 });
 
 // AUTH
@@ -291,22 +269,24 @@ app.post('/api/admin/restore', requireAuth, dbCheck, express.json({ limit: '50mb
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// START — server always starts, DB connects in background
+// START — server always starts, DB connects in background with retry
 app.listen(PORT, async () => {
   console.log(`Jack Streaming running on port ${PORT}`);
   console.log('DATABASE_URL set:', !!process.env.DATABASE_URL);
-  await initPool();
+  pool = createPool();
   if (pool) {
-    try {
-      await initDB();
-    } catch (err) {
-      dbError = err.message;
-      console.error('[DB] Init failed:', err.message);
-      setTimeout(async () => {
-        try { await initDB(); }
-        catch (e) { dbError = e.message; console.error('[DB] Retry failed:', e.message); }
-      }, 15000);
-    }
+    const tryInit = async (attempt) => {
+      try {
+        await initDB();
+      } catch (err) {
+        dbError = err.message;
+        console.error(`[DB] Init attempt ${attempt} failed:`, err.message);
+        if (attempt < 5) {
+          setTimeout(() => tryInit(attempt + 1), 10000 * attempt);
+        }
+      }
+    };
+    tryInit(1);
   }
   const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
   setInterval(() => {
