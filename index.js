@@ -71,14 +71,26 @@ async function initDB() {
   } finally { client.release(); }
 }
 
+// ── IN-MEMORY CACHE (reduces Neon data transfer) ─────────────────────────────
+const cache = { products: null, settings: null, productsTTL: 0, settingsTTL: 0 };
+const CACHE_MS = 5 * 60 * 1000; // 5 minutes
+
+function invalidateCache() { cache.products = null; cache.settings = null; cache.productsTTL = 0; cache.settingsTTL = 0; }
+
 async function getProducts() {
+  if (cache.products && Date.now() < cache.productsTTL) return cache.products;
   const { rows } = await pool.query('SELECT * FROM products ORDER BY created_at ASC');
-  return rows.map(r => ({ ...r, price: parseFloat(r.price), features: Array.isArray(r.features) ? r.features : [] }));
+  cache.products = rows.map(r => ({ ...r, price: parseFloat(r.price), features: Array.isArray(r.features) ? r.features : [] }));
+  cache.productsTTL = Date.now() + CACHE_MS;
+  return cache.products;
 }
 async function getSettings() {
+  if (cache.settings && Date.now() < cache.settingsTTL) return cache.settings;
   const { rows } = await pool.query('SELECT key, value FROM settings');
   const s = { whatsapp_number: '', banner_image: '', site_title: 'JACK STREAMING' };
   rows.forEach(r => { s[r.key] = r.value || ''; });
+  cache.settings = s;
+  cache.settingsTTL = Date.now() + CACHE_MS;
   return s;
 }
 function dbCheck(req, res, next) {
@@ -141,7 +153,7 @@ app.post('/api/admin/products', auth, dbCheck, upload.single('image'), async (re
       `INSERT INTO products(id,name,service,account_type,price,features,days_guaranteed,whatsapp_message,image,active) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,true) RETURNING *`,
       [id,name,service||'',account_type||'cuenta',parseFloat(price),JSON.stringify(feat),parseInt(days_guaranteed)||30,whatsapp_message,img]
     );
-    const p=rows[0]; res.json({ ok:true, product:{...p,price:parseFloat(p.price),features:Array.isArray(p.features)?p.features:[]} });
+    const p=rows[0]; invalidateCache(); res.json({ ok:true, product:{...p,price:parseFloat(p.price),features:Array.isArray(p.features)?p.features:[]} });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 app.put('/api/admin/products/:id', auth, dbCheck, upload.single('image'), async (req, res) => {
@@ -157,21 +169,21 @@ app.put('/api/admin/products/:id', auth, dbCheck, upload.single('image'), async 
       `UPDATE products SET name=$2,service=$3,account_type=$4,price=$5,features=$6,days_guaranteed=$7,whatsapp_message=$8,image=$9 WHERE id=$1 RETURNING *`,
       [id,name||cur.name,service!==undefined?service:cur.service,account_type||cur.account_type,price?parseFloat(price):parseFloat(cur.price),JSON.stringify(feat),days_guaranteed?parseInt(days_guaranteed):cur.days_guaranteed,whatsapp_message||cur.whatsapp_message,img]
     );
-    const p=rows[0]; res.json({ ok:true, product:{...p,price:parseFloat(p.price),features:Array.isArray(p.features)?p.features:[]} });
+    const p=rows[0]; invalidateCache(); res.json({ ok:true, product:{...p,price:parseFloat(p.price),features:Array.isArray(p.features)?p.features:[]} });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 app.delete('/api/admin/products/:id', auth, dbCheck, async (req, res) => {
   try {
     const r = await pool.query('DELETE FROM products WHERE id=$1', [req.params.id]);
     if (!r.rowCount) return res.status(404).json({ error: 'No encontrado' });
-    res.json({ ok: true });
+    invalidateCache(); res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 app.patch('/api/admin/products/:id/toggle', auth, dbCheck, async (req, res) => {
   try {
     const { rows } = await pool.query('UPDATE products SET active=NOT active WHERE id=$1 RETURNING active', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'No encontrado' });
-    res.json({ ok:true, active:rows[0].active });
+    invalidateCache(); res.json({ ok:true, active:rows[0].active });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -181,7 +193,7 @@ app.post('/api/admin/settings', auth, dbCheck, upload.single('banner'), async (r
     if (req.body.whatsapp_number !== undefined) await up('whatsapp_number', req.body.whatsapp_number);
     if (req.body.site_title !== undefined) await up('site_title', req.body.site_title);
     if (req.file) await up('banner_image', `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`);
-    res.json({ ok:true, settings: await getSettings() });
+    invalidateCache(); res.json({ ok:true, settings: await getSettings() });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 app.get('/api/admin/settings', auth, dbCheck, async (req, res) => {
@@ -210,7 +222,7 @@ app.post('/api/admin/restore', auth, dbCheck, express.json({ limit: '50mb' }), a
       if (['whatsapp_number','banner_image','site_title'].includes(k))
         await pool.query('INSERT INTO settings(key,value) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET value=$2',[k,v||'']);
     }
-    res.json({ ok: true });
+    invalidateCache(); res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
