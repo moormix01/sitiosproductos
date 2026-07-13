@@ -44,7 +44,7 @@ async function initDB() {
       id TEXT PRIMARY KEY, name TEXT NOT NULL, service TEXT DEFAULT '',
       account_type TEXT DEFAULT 'cuenta', price NUMERIC NOT NULL,
       features JSONB DEFAULT '[]', days_guaranteed INTEGER DEFAULT 30,
-      whatsapp_message TEXT NOT NULL, image TEXT DEFAULT '',
+      whatsapp_message TEXT DEFAULT '', image TEXT DEFAULT '',
       active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ DEFAULT NOW()
     )`);
     await client.query(`CREATE TABLE IF NOT EXISTS settings (
@@ -142,16 +142,26 @@ app.get('/api/check-auth', (req, res) => res.json({ authenticated: !!(req.sessio
 app.get('/api/admin/products', auth, dbCheck, async (req, res) => {
   try { res.json(await getProducts()); } catch(e) { res.status(500).json({ error: e.message }); }
 });
+// Auto-genera el mensaje de WhatsApp a partir de los datos del producto
+function buildWhatsappMessage({ name, account_type, days_guaranteed, feat }) {
+  const tipo = account_type === 'perfil' ? 'Perfil' : 'Cuenta Completa';
+  let msg = `Hola Jack, me interesa comprar *${name}* (${tipo}) - Garantía: ${days_guaranteed || 30} días.`;
+  if (feat && feat.length) msg += ` Incluye: ${feat.join(', ')}.`;
+  return msg;
+}
+
 app.post('/api/admin/products', auth, dbCheck, upload.single('image'), async (req, res) => {
   try {
-    const { name, service, account_type, price, features, days_guaranteed, whatsapp_message } = req.body;
-    if (!name || !price || !whatsapp_message) return res.status(400).json({ error: 'Faltan campos' });
+    const { name, service, account_type, price, features, days_guaranteed } = req.body;
+    if (!name || !price) return res.status(400).json({ error: 'Faltan campos' });
     const id = Date.now().toString();
     const feat = features ? features.split('\n').map(f=>f.trim()).filter(Boolean) : [];
+    const days = parseInt(days_guaranteed)||30;
     const img = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : '';
+    const whatsapp_message = buildWhatsappMessage({ name, account_type, days_guaranteed: days, feat });
     const { rows } = await pool.query(
       `INSERT INTO products(id,name,service,account_type,price,features,days_guaranteed,whatsapp_message,image,active) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,true) RETURNING *`,
-      [id,name,service||'',account_type||'cuenta',parseFloat(price),JSON.stringify(feat),parseInt(days_guaranteed)||30,whatsapp_message,img]
+      [id,name,service||'',account_type||'cuenta',parseFloat(price),JSON.stringify(feat),days,whatsapp_message,img]
     );
     const p=rows[0]; invalidateCache(); res.json({ ok:true, product:{...p,price:parseFloat(p.price),features:Array.isArray(p.features)?p.features:[]} });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -162,12 +172,16 @@ app.put('/api/admin/products/:id', auth, dbCheck, upload.single('image'), async 
     const ex = await pool.query('SELECT * FROM products WHERE id=$1', [id]);
     if (!ex.rows.length) return res.status(404).json({ error: 'No encontrado' });
     const cur = ex.rows[0];
-    const { name, service, account_type, price, features, days_guaranteed, whatsapp_message } = req.body;
+    const { name, service, account_type, price, features, days_guaranteed } = req.body;
     const feat = features ? features.split('\n').map(f=>f.trim()).filter(Boolean) : (Array.isArray(cur.features)?cur.features:[]);
     const img = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : cur.image;
+    const finalName = name||cur.name;
+    const finalType = account_type||cur.account_type;
+    const finalDays = days_guaranteed?parseInt(days_guaranteed):cur.days_guaranteed;
+    const whatsapp_message = buildWhatsappMessage({ name: finalName, account_type: finalType, days_guaranteed: finalDays, feat });
     const { rows } = await pool.query(
       `UPDATE products SET name=$2,service=$3,account_type=$4,price=$5,features=$6,days_guaranteed=$7,whatsapp_message=$8,image=$9 WHERE id=$1 RETURNING *`,
-      [id,name||cur.name,service!==undefined?service:cur.service,account_type||cur.account_type,price?parseFloat(price):parseFloat(cur.price),JSON.stringify(feat),days_guaranteed?parseInt(days_guaranteed):cur.days_guaranteed,whatsapp_message||cur.whatsapp_message,img]
+      [id,finalName,service!==undefined?service:cur.service,finalType,price?parseFloat(price):parseFloat(cur.price),JSON.stringify(feat),finalDays,whatsapp_message,img]
     );
     const p=rows[0]; invalidateCache(); res.json({ ok:true, product:{...p,price:parseFloat(p.price),features:Array.isArray(p.features)?p.features:[]} });
   } catch(e) { res.status(500).json({ error: e.message }); }

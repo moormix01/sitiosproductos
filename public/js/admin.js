@@ -207,7 +207,6 @@ async function saveProduct(e) {
   formData.append('price', document.getElementById('p-price').value);
   formData.append('features', document.getElementById('p-features').value);
   formData.append('days_guaranteed', document.getElementById('p-days').value);
-  formData.append('whatsapp_message', document.getElementById('p-whatsapp').value);
   const imgFile = document.getElementById('p-image').files[0];
   if (imgFile) formData.append('image', imgFile);
 
@@ -239,7 +238,6 @@ async function editProduct(id) {
   document.getElementById('p-price').value = p.price;
   document.getElementById('p-days').value = p.days_guaranteed;
   document.getElementById('p-features').value = (p.features || []).join('\n');
-  document.getElementById('p-whatsapp').value = p.whatsapp_message;
   if (p.image) { document.getElementById('image-preview').src = p.image; document.getElementById('image-preview-wrap').style.display = 'block'; }
   document.getElementById('form-title').textContent = 'Editar Producto';
   showTab('add-product');

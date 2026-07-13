@@ -42,7 +42,10 @@ function createCard(p) {
   const div = document.createElement('div');
   div.className = 'product-card';
 
-  const msg = encodeURIComponent(p.whatsapp_message || `Hola Jack, vengo de tu sitio web, me interesa comprar ${p.name}`);
+  const tipo = p.account_type === 'perfil' ? 'Perfil' : 'Cuenta Completa';
+  let autoMsg = `Hola Jack, me interesa comprar *${p.name}* (${tipo}) - Garantía: ${p.days_guaranteed || 30} días.`;
+  if (p.features && p.features.length) autoMsg += ` Incluye: ${p.features.join(', ')}.`;
+  const msg = encodeURIComponent(p.whatsapp_message || autoMsg);
   const waBase = waNumber ? `https://wa.me/${waNumber}` : 'https://wa.me/';
   const waHref = `${waBase}?text=${msg}`;
 
