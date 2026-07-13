@@ -112,3 +112,90 @@ body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); 
   .product-item-actions { width:100%; justify-content:flex-end; }
   .backup-info { grid-template-columns:1fr; }
 }
+
+/* ── REPORTS TAB ──────────────────────────────────────────────────────── */
+.reports-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 15px;
+  pointer-events: none;
+}
+.reports-search {
+  padding: 9px 14px 9px 36px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  width: 260px;
+  outline: none;
+  transition: border-color .2s;
+}
+.reports-search:focus { border-color: var(--accent2); }
+
+.reports-list { display: flex; flex-direction: column; gap: 16px; }
+
+.report-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.report-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.report-card-info { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.report-error-badge {
+  background: rgba(239,68,68,0.18);
+  color: #f87171;
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.report-date { font-size: 12px; color: var(--muted); }
+
+.btn-solved {
+  background: rgba(34,197,94,0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34,197,94,0.3);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .2s;
+  white-space: nowrap;
+}
+.btn-solved:hover { background: rgba(34,197,94,0.28); }
+.btn-solved:disabled { opacity: .5; cursor: not-allowed; }
+
+.report-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  padding: 16px 20px;
+}
+.rinfo { display: flex; flex-direction: column; gap: 2px; }
+.rinfo span { font-size: 11px; color: var(--muted); }
+.rinfo strong { font-size: 13px; color: var(--text); word-break: break-all; }
+
+@media(max-width:768px) {
+  .reports-search { width: 180px; }
+  .report-card-body { grid-template-columns: 1fr 1fr; }
+}

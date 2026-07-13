@@ -53,6 +53,19 @@ async function initDB() {
     await client.query(`INSERT INTO settings(key,value) VALUES
       ('whatsapp_number',''),('banner_image',''),('site_title','JACK STREAMING')
       ON CONFLICT(key) DO NOTHING`);
+    await client.query(`CREATE TABLE IF NOT EXISTS reports (
+      id SERIAL PRIMARY KEY,
+      telefono TEXT NOT NULL,
+      numero_pedido TEXT DEFAULT '',
+      correo TEXT NOT NULL,
+      contrasena TEXT NOT NULL,
+      plataforma TEXT NOT NULL,
+      fecha_compra TEXT NOT NULL,
+      fecha_vencimiento TEXT NOT NULL,
+      meses TEXT NOT NULL,
+      tipo_error TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`);
     dbReady = true; dbError = null;
     console.log('[DB] OK');
   } finally { client.release(); }
@@ -196,6 +209,42 @@ app.post('/api/admin/restore', auth, dbCheck, express.json({ limit: '50mb' }), a
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
+
+// ── REPORTS ─────────────────────────────────────────────────────────────────
+// Public: client submits a report
+app.post('/api/reports', dbCheck, async (req, res) => {
+  try {
+    const { telefono, numero_pedido, correo, contrasena, plataforma, fecha_compra, fecha_vencimiento, meses, tipo_error } = req.body;
+    if (!telefono || !correo || !contrasena || !plataforma || !fecha_compra || !fecha_vencimiento || !meses || !tipo_error)
+      return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    await pool.query(
+      'INSERT INTO reports(telefono,numero_pedido,correo,contrasena,plataforma,fecha_compra,fecha_vencimiento,meses,tipo_error) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+      [telefono, numero_pedido||'', correo, contrasena, plataforma, fecha_compra, fecha_vencimiento, meses, tipo_error]
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: list reports with optional search
+app.get('/api/admin/reports', auth, dbCheck, async (req, res) => {
+  try {
+    const q = req.query.q || '';
+    const { rows } = await pool.query(
+      'SELECT * FROM reports WHERE correo ILIKE $1 OR telefono ILIKE $1 ORDER BY created_at DESC',
+      [`%${q}%`]
+    );
+    res.json(rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: mark report as solved (delete)
+app.delete('/api/admin/reports/:id', auth, dbCheck, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM reports WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname,'public','admin.html')));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname,'public','index.html')));

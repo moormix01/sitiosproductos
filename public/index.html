@@ -6,7 +6,7 @@
   <title>JACK STREAMING</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
   <header class="header">
@@ -30,10 +30,6 @@
       <a href="/admin">Panel Admin</a>
     </div>
   </header>
-
-  <section class="banner-section" id="banner-section" style="display:none">
-    <img src="" id="banner-img" alt="Banner Jack Streaming" class="banner-img">
-  </section>
 
   <section class="hero" id="hero">
     <div class="hero-content">
@@ -90,6 +86,87 @@
       <p class="footer-copy">© 2025 Jack Streaming. Todos los derechos reservados.</p>
     </div>
   </footer>
+
+  <!-- FLOATING REPORT BUTTON -->
+  <button class="report-fab" id="reportFab" onclick="openReportModal()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+    Reporte
+  </button>
+
+  <!-- REPORT MODAL -->
+  <div class="report-overlay" id="reportOverlay" onclick="closeReportModal(event)">
+    <div class="report-modal">
+      <button class="report-close" onclick="closeReportModal()">✕</button>
+
+      <div class="report-header">
+        <h2 class="report-title">REPORTE JACKSTREAM</h2>
+        <p class="report-subtitle">Completa el formulario y te contactamos a la brevedad</p>
+      </div>
+
+      <div id="reportForm">
+        <div class="report-fields">
+          <div class="rfield">
+            <label>Teléfono con código de país <span class="req">*</span></label>
+            <input type="tel" id="r-telefono" placeholder="Ej: +58 412 1234567" required>
+          </div>
+          <div class="rfield">
+            <label>Número de pedido <span class="opt">(colocar en caso de tener)</span></label>
+            <input type="text" id="r-pedido" placeholder="Opcional">
+          </div>
+          <div class="rfield">
+            <label>Correo de la cuenta <span class="req">*</span></label>
+            <input type="email" id="r-correo" placeholder="correo@ejemplo.com" required>
+          </div>
+          <div class="rfield">
+            <label>Contraseña de la cuenta <span class="req">*</span></label>
+            <input type="text" id="r-contrasena" placeholder="Tu contraseña actual" required>
+          </div>
+          <div class="rfield">
+            <label>Plataforma que compraste <span class="req">*</span></label>
+            <input type="text" id="r-plataforma" placeholder="Ej: Netflix, Disney+, HBO..." required>
+          </div>
+          <div class="rfield rfield-half">
+            <label>Fecha de compra <span class="req">*</span></label>
+            <input type="date" id="r-fecha-compra" required>
+          </div>
+          <div class="rfield rfield-half">
+            <label>Fecha de vencimiento <span class="req">*</span></label>
+            <input type="date" id="r-fecha-venc" required>
+          </div>
+          <div class="rfield rfield-half">
+            <label>Meses que compraste <span class="req">*</span></label>
+            <input type="number" id="r-meses" placeholder="Ej: 1" min="1" required>
+          </div>
+          <div class="rfield rfield-half">
+            <label>Tipo de error <span class="req">*</span></label>
+            <select id="r-error" required>
+              <option value="">— Selecciona el error —</option>
+              <option value="Contraseña incorrecta">Contraseña incorrecta</option>
+              <option value="Sin suscripción">Sin suscripción</option>
+              <option value="Cuenta bloqueada">Cuenta bloqueada</option>
+              <option value="Cuenta no existe">Cuenta no existe</option>
+              <option value="No llegan códigos al bot">No llegan códigos al bot</option>
+              <option value="No llegan link de reseteo al bot">No llegan link de reseteo al bot</option>
+              <option value="Solicitud de cambio de contraseña">Solicitud de cambio de contraseña</option>
+              <option value="Cuenta con geobloqueo">Cuenta con geobloqueo</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="reportError" class="report-err" style="display:none"></div>
+        <button class="report-submit" id="reportSubmitBtn" onclick="submitReport()">Enviar Reporte</button>
+      </div>
+
+      <div id="reportSuccess" class="report-success" style="display:none">
+        <div class="success-icon">✅</div>
+        <h3>¡Reporte recibido!</h3>
+        <p>Nos pondremos en contacto contigo.<br>
+        Recuerda que las <strong>garantías las entregamos por la noche.</strong><br>
+        ¡Lindo día! 😊</p>
+        <p class="report-warn">🚫 <strong>Prohibido escribirnos a nuestro WhatsApp.</strong><br>Todos los reportes van por aquí.</p>
+      </div>
+    </div>
+  </div>
 
   <script src="/js/main.js"></script>
 </body>

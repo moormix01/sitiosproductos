@@ -75,6 +75,7 @@ function showTab(tab) {
   document.getElementById(`tab-${tab}`)?.classList.add('active');
   document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
   if (tab === 'products') loadAdminProducts();
+  if (tab === 'reports') loadReports();
 }
 
 async function loadAdminProducts() {
@@ -122,6 +123,51 @@ async function loadAdminSettings() {
     }
   } catch {}
 }
+
+// ── REPORTS ──────────────────────────────────────────────────────────────────
+async function loadReports(q = '') {
+  const list = document.getElementById('reports-list');
+  list.innerHTML = '<div class="loading">Cargando reportes...</div>';
+  try {
+    const reports = await fetch(`/api/admin/reports?q=${encodeURIComponent(q)}`).then(r => r.json());
+    if (!reports.length) {
+      list.innerHTML = '<div class="empty">No hay reportes pendientes. 🎉</div>';
+      return;
+    }
+    list.innerHTML = '';
+    reports.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'report-card';
+      card.innerHTML = `
+        <div class="report-card-header">
+          <div class="report-card-info">
+            <span class="report-error-badge">${r.tipo_error}</span>
+            <span class="report-date">${new Date(r.created_at).toLocaleString('es-VE')}</span>
+          </div>
+          <button class="btn-solved" onclick="solveReport(${r.id}, this)">✅ Reporte Solucionado</button>
+        </div>
+        <div class="report-card-body">
+          <div class="rinfo"><span>📱 Teléfono</span><strong>${r.telefono}</strong></div>
+          <div class="rinfo"><span>📧 Correo</span><strong>${r.correo}</strong></div>
+          <div class="rinfo"><span>🔑 Contraseña</span><strong>${r.contrasena}</strong></div>
+          <div class="rinfo"><span>📺 Plataforma</span><strong>${r.plataforma}</strong></div>
+          <div class="rinfo"><span>🗓 Compra</span><strong>${r.fecha_compra}</strong></div>
+          <div class="rinfo"><span>⏳ Vencimiento</span><strong>${r.fecha_vencimiento}</strong></div>
+          <div class="rinfo"><span>📅 Meses</span><strong>${r.meses}</strong></div>
+          ${r.numero_pedido ? `<div class="rinfo"><span>🔖 N° Pedido</span><strong>${r.numero_pedido}</strong></div>` : ''}
+        </div>`;
+      list.appendChild(card);
+    });
+  } catch { list.innerHTML = '<div class="empty">Error al cargar reportes</div>'; }
+}
+
+async function solveReport(id, btn) {
+  btn.textContent = 'Eliminando...';
+  btn.disabled = true;
+  await fetch(`/api/admin/reports/${id}`, { method: 'DELETE' });
+  loadReports(document.getElementById('reports-search').value);
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function saveProduct(e) {
   e.preventDefault();

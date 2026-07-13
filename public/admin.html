@@ -28,6 +28,7 @@
     <nav class="sidebar-nav">
       <a href="#" class="nav-item active" data-tab="products">📦 Productos</a>
       <a href="#" class="nav-item" data-tab="add-product">➕ Agregar Producto</a>
+      <a href="#" class="nav-item" data-tab="reports">🚨 Reportes</a>
       <a href="#" class="nav-item" data-tab="settings">⚙️ Configuración</a>
       <a href="#" class="nav-item" data-tab="backup">💾 Backup</a>
     </nav>
@@ -102,6 +103,18 @@
         </div>
         <div id="form-msg" class="form-msg" style="display:none"></div>
       </form>
+    </div>
+
+    <!-- REPORTS TAB -->
+    <div class="tab-content" id="tab-reports">
+      <div class="tab-header">
+        <h1>🚨 Reportes de Clientes</h1>
+        <div class="reports-search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="reports-search" class="reports-search" placeholder="Buscar por correo o teléfono..." oninput="loadReports(this.value)">
+        </div>
+      </div>
+      <div id="reports-list" class="reports-list"><div class="loading">Cargando reportes...</div></div>
     </div>
 
     <!-- SETTINGS TAB -->
