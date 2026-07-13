@@ -78,38 +78,61 @@ function showTab(tab) {
   if (tab === 'reports') loadReports();
 }
 
+let allAdminProducts = [];
+
 async function loadAdminProducts() {
   const list = document.getElementById('products-list');
   list.innerHTML = '<div class="loading">Cargando...</div>';
   try {
-    const products = await fetch('/api/admin/products').then(r => r.json());
-    if (!products.length) { list.innerHTML = '<div class="empty">No hay productos. Agrega uno.</div>'; return; }
-    list.innerHTML = '';
-    products.forEach(p => {
-      const item = document.createElement('div');
-      item.className = `product-item ${p.active ? '' : 'inactive-item'}`;
-      const imgHTML = p.image
-        ? `<img src="${p.image}" alt="${p.name}">`
-        : getEmoji(p.service);
-      item.innerHTML = `
-        <div class="product-item-img">${imgHTML}</div>
-        <div class="product-item-info">
-          <h3>${p.name}</h3>
-          <div class="product-item-meta">
-            <span>${p.account_type === 'perfil' ? '👤 Perfil' : '💻 Cuenta completa'}</span>
-            <span>⏱ ${p.days_guaranteed} días</span>
-            <span>${p.active ? '✅ Activo' : '❌ Inactivo'}</span>
-          </div>
-        </div>
-        <span class="product-item-price">$${parseFloat(p.price).toFixed(2)}</span>
-        <div class="product-item-actions">
-          <button class="action-btn ${p.active ? 'active-btn' : 'inactive-btn'}" onclick="toggleProduct('${p.id}')">${p.active ? 'Desactivar' : 'Activar'}</button>
-          <button class="action-btn edit-btn" onclick="editProduct('${p.id}')">Editar</button>
-          <button class="action-btn del-btn" onclick="confirmDelete('${p.id}', '${p.name.replace(/'/g,"\\'")}')">Eliminar</button>
-        </div>`;
-      list.appendChild(item);
-    });
+    allAdminProducts = await fetch('/api/admin/products').then(r => r.json());
+    const searchEl = document.getElementById('products-search');
+    if (searchEl) searchEl.value = '';
+    renderProductList(allAdminProducts);
   } catch { list.innerHTML = '<div class="empty">Error al cargar productos</div>'; }
+}
+
+function filterProducts(q) {
+  const term = (q || '').toLowerCase().trim();
+  const filtered = term
+    ? allAdminProducts.filter(p =>
+        p.name.toLowerCase().includes(term) ||
+        (p.service || '').toLowerCase().includes(term)
+      )
+    : allAdminProducts;
+  renderProductList(filtered);
+}
+
+function renderProductList(products) {
+  const list = document.getElementById('products-list');
+  if (!products.length) {
+    list.innerHTML = '<div class="empty">No se encontraron productos.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  products.forEach(p => {
+    const item = document.createElement('div');
+    item.className = `product-item ${p.active ? '' : 'inactive-item'}`;
+    const imgHTML = p.image
+      ? `<img src="${p.image}" alt="${p.name}">`
+      : getEmoji(p.service);
+    item.innerHTML = `
+      <div class="product-item-img">${imgHTML}</div>
+      <div class="product-item-info">
+        <h3>${p.name}</h3>
+        <div class="product-item-meta">
+          <span>${p.account_type === 'perfil' ? '👤 Perfil' : '💻 Cuenta completa'}</span>
+          <span>⏱ ${p.days_guaranteed} días</span>
+          <span>${p.active ? '✅ Activo' : '❌ Inactivo'}</span>
+        </div>
+      </div>
+      <span class="product-item-price">${parseFloat(p.price).toFixed(2)}</span>
+      <div class="product-item-actions">
+        <button class="action-btn ${p.active ? 'active-btn' : 'inactive-btn'}" onclick="toggleProduct('${p.id}')">${p.active ? 'Desactivar' : 'Activar'}</button>
+        <button class="action-btn edit-btn" onclick="editProduct('${p.id}')">Editar</button>
+        <button class="action-btn del-btn" onclick="confirmDelete('${p.id}', '${p.name.replace(/'/g,"\\'")}')">Eliminar</button>
+      </div>`;
+    list.appendChild(item);
+  });
 }
 
 async function loadAdminSettings() {

@@ -40,7 +40,13 @@
     <div class="tab-content active" id="tab-products">
       <div class="tab-header">
         <h1>Mis Productos</h1>
-        <button class="btn-primary" onclick="showTab('add-product')">+ Agregar</button>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <div class="reports-search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="products-search" class="reports-search" placeholder="Buscar producto..." oninput="filterProducts(this.value)">
+          </div>
+          <button class="btn-primary" onclick="showTab('add-product')">+ Agregar</button>
+        </div>
       </div>
       <div id="products-list" class="products-list"><div class="loading">Cargando...</div></div>
     </div>

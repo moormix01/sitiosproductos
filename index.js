@@ -106,13 +106,17 @@ app.get('/api/db-status', (req, res) => res.json({ dbReady, dbError, env: !!proc
 app.get('/api/products', dbCheck, async (req, res) => {
   try {
     const p = (await getProducts()).filter(p => p.active);
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     res.json(p.map(p => ({ id:p.id,name:p.name,service:p.service,account_type:p.account_type,price:p.price,features:p.features,days_guaranteed:p.days_guaranteed,whatsapp_message:p.whatsapp_message,image:p.image })));
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/settings/public', dbCheck, async (req, res) => {
-  try { const s = await getSettings(); res.json({ banner_image:s.banner_image, site_title:s.site_title, whatsapp_number:s.whatsapp_number }); }
-  catch(e) { res.status(500).json({ error: e.message }); }
+  try {
+    const s = await getSettings();
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+    res.json({ banner_image:s.banner_image, site_title:s.site_title, whatsapp_number:s.whatsapp_number });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/login', (req, res) => {
